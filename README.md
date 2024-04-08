@@ -36,22 +36,75 @@ sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 sudo systemctl start docker
 ```
 
-### Pull in docker yaml (Need to test if this works with podman)
+### Move Mount for docker/podman to seperate disk
+Create/Modify /etc/docker/daemon.conf where path is your new disk
+```
+cat /etc/docker/daemon.conf<<EOF
+{
+  "data-root": "/u01/docker"
+}
+EOF
+```
+
+If you already created some containers
+```
+sudo perl -pi -e 's%/var/lib/docker%/u01/var/lib/docker%g' `find /u01/var/lib/docker -name "config.v2.json"`
+```
+
+### Pull in docker/podman yaml (Need to test if this works with podman)
+```
 git pull https://github.com/fernandesselwyn/proxmox-collector.git
+```
 
-### Setup docker network for these containers
+### Setup docker/podman network for these containers
+```
 docker network create guest_network
+```
 
-### Setup docker volume for presistent storage
+### Setup docker/podman volume for presistent storage
+```
 docker volume create influxdb-volume
 docker volume create grafana-volume
+```
 
-### Docker compose the yaml (make sure both the docker-compose.yml and telegraf.conf are in the folder)
+### docker/podman compose the yaml (make sure both the docker-compose.yml and telegraf.conf are in the folder)
+```
 docker-compose up -d
+```
 
 ### Configure InfluxDB, create API token
+Log into https://<server_ip>:8086
+Set organization name, user, password
+Capture API Token to influx_t.txt
 
+Get and configure influxCLI
+```
+cd /tmp
+wget https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.3-linux-amd64.tar.gz
+sudo tar xvzf ./influxdb2-client-2.7.3-linux-amd64.tar.gz
+sudo cp ./influx /usr/local/bin/
+export admin_token=(`cat influx_t.txt`)
+influx config create --config-name proxmox --host-url http://localhost:8086 --org daycollector --token ${admin_token} --active
+```
+
+Create second user 
+```
+sudo docker exec -it influxdb_container influx user create \
+> --org <org-name>
+> --name readonly \
+> --password <some_password> \
+> -t <token>
+
+sudo docker exec -it influxdb_container influx user create \
+> --org <org-name>
+> --name readonly \
+> --password <some_password> \
+> -t <token>
+```
+
+At 
 ### Configure Grafana, add datasource
+
 
 ### Configure Proxmox
 
