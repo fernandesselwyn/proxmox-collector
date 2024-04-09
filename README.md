@@ -46,7 +46,7 @@ cat /etc/docker/daemon.conf<<EOF
 EOF
 ```
 
-If you already created some containers
+If you already created some containers, after moving them you need to update config.v2.json file 
 ```
 sudo perl -pi -e 's%/var/lib/docker%/u01/var/lib/docker%g' `find /u01/var/lib/docker -name "config.v2.json"`
 ```
@@ -88,24 +88,39 @@ influx config create --config-name proxmox --host-url http://localhost:8086 --or
 ```
 
 Create second user 
+If you skip getting the local CLI you can pass it via docker exec. (same command if you did it cli version)
 ```
+sudo docker exec -it influxdb_container influx user create \
+--org <org-name>
+--name readonly \
+--password <some_password> \
+--t <admin_token>
+
 sudo docker exec -it influxdb_container influx user create \
 > --org <org-name>
 > --name readonly \
 > --password <some_password> \
-> -t <token>
-
-sudo docker exec -it influxdb_container influx user create \
-> --org <org-name>
-> --name readonly \
-> --password <some_password> \
-> -t <token>
+> -t <admin_token>
 ```
-
-At 
-### Configure Grafana, add datasource
-
+This can be done via the GUI http://<your-fqdn>:8086
 
 ### Configure Proxmox
+Techinically with just this we can start sending metric data
+Datacenter>Metric Server>Add>InfluxDB
+Name: <some_name>
+Server: <IP_Address>
+Port: 8086 (This is default/per docker config)
+Protocol: HTTP
+Organization: <org-name>
+Bucket: <named_bucket> (I went with proxmox but may want a ## iteration to possibly add a second instance)
+Token: <new_token> OR <admin_token> (not recommended)
+
+From influxDB you should see the bucket created
+```
+influx bucket ls
+```
+
+### Configure Grafana, add datasource
+
 
 ### Import Grafana dashboard
